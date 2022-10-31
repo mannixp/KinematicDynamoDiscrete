@@ -831,7 +831,7 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
             pass;
 
         # Print out the optimisation status
-        if verbose : print(R,flush=True);
+        if verbose : Print(R,flush=True);
         f_txt.write(str(R))
         f_txt.write('\n')
         f_txt.flush()

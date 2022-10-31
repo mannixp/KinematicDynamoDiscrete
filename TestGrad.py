@@ -2,6 +2,10 @@ import time
 import numpy as np
 import logging
 
+def Print(str,flush=False):
+    if MPI.COMM_WORLD.rank == 0:
+        print(str,flush=flush)
+
 def Adjoint_Gradient_Test(X0,dX0, FWD_Solve,ADJ_Solve,Inner_Prod,args_f=(),args_IP=(),kwargs_f={},kwargs_IP={},epsilon = 1e-04):
 
 
@@ -48,7 +52,7 @@ def Adjoint_Gradient_Test(X0,dX0, FWD_Solve,ADJ_Solve,Inner_Prod,args_f=(),args_
 	else:
 		J_ref 	   = FWD_Solve([X0],	*args_f,*kwargs_f);
 	end_time   = time.time()
-	print('Total time fwd: %f' %(end_time-start_time))
+	Print('Total time fwd: %f' %(end_time-start_time))
 
 
 	logger.info("dJ Adjoint_Solve running .... \n")
@@ -58,7 +62,7 @@ def Adjoint_Gradient_Test(X0,dX0, FWD_Solve,ADJ_Solve,Inner_Prod,args_f=(),args_
 	else:
 		dJdX 	   = ADJ_Solve([X0],	*args_f,*kwargs_f);
 	end_time   = time.time()
-	print('Total time adjoint: %f' %(end_time-start_time))
+	Print('Total time adjoint: %f' %(end_time-start_time))
 
 	logger.info("Computing Inner product <dL/dB,dB >_adj  .... \n")
 	if isinstance(dX0, list):

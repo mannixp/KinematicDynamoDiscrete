@@ -12,36 +12,38 @@ class LineSearchWarning(RuntimeWarning):
 # We acknowledge the scipy.optimize.line_search library for the
 # modified
 # LS_armijo_multiple, LS_wolfe_multiple
-# unmodified 
+# unmodified
 # scalar_search_armijo, scalar_search_wolfe2, _cubicmin, _quadmin, _zoom
 # functions present in this file.
 
-
+def Print(str,flush=False):
+    if MPI.COMM_WORLD.rank == 0:
+        print(str,flush=flush)
 ###################################################################
 class result():
-    
+
     """
     class for result of optimize_rotation
-    
+
     Inputs:
-    components - integer the number of norm constraints 
+    components - integer the number of norm constraints
 
     Returns:
     None
     """
-    
+
     def __init__(self,components):
-        
+
         self.N=components;
         self.X_opt=np.asarray([])
-        
+
         self.Iterations=0
         self.Function_Evals=0
         self.Gradient_Evals=0
-        
+
         self.Residual=[]
         self.Step_Size=[]
-        self.Function_Value=[]     
+        self.Function_Value=[]
 
     def __str__(self):
 
@@ -67,12 +69,12 @@ def LS_armijo_multiple(f, inner_prod, M_0, X_k, g_k, d_k,  old_fval, args_f=(), 
 
     """
     Minimize over alpha, the function ``phi(α) = f( R_xk(α_k*d_k) )``,
-    
+
     where X_k+1 = R_xk =  √M_0*(X_k + α_k*d_k)/|| X_k + α_k*d_k ||_2
 
     is the rectraction based update see:
     Nicolas Boumal. An introduction to optimization on smooth manifolds, 2020
-    
+
     Parameters
     ----------
     f : callable f(x,*args_f,**kwargs_f)
@@ -80,13 +82,13 @@ def LS_armijo_multiple(f, inner_prod, M_0, X_k, g_k, d_k,  old_fval, args_f=(), 
     inner_prod : callable IP(x,y,*args_IP,**kwargs_IP)
         Inner product
     M_0: list of floats
-         Spherical manifold radius <X_0,X_0> = M_0     
+         Spherical manifold radius <X_0,X_0> = M_0
     X_k : list of array_like
         Current point.
     g_k: list of array_like
-        tangent gradient of current point    
+        tangent gradient of current point
     d_k : list of array_like
-        **like** the Search direction.  
+        **like** the Search direction.
     old_fval : float
         Value of `f` at point `X_k`.
     args_f : tuple, optional
@@ -112,9 +114,9 @@ def LS_armijo_multiple(f, inner_prod, M_0, X_k, g_k, d_k,  old_fval, args_f=(), 
     fc = [0]
 
     def phi(alpha1):
-        
+
         fc[0] += 1;
-        
+
         #apply norm constraints
         X_new = copy.deepcopy(X_k);
         for index,c_i in enumerate(M_0):
@@ -126,11 +128,11 @@ def LS_armijo_multiple(f, inner_prod, M_0, X_k, g_k, d_k,  old_fval, args_f=(), 
     else:
         phi0 = old_fval  # compute f(xk) -- done in past loop
 
-    # Compute the derivative w.r.t alpha at alpha=0        
-    derphi0=0.    
+    # Compute the derivative w.r.t alpha at alpha=0
+    derphi0=0.
     for index,_ in enumerate(M_0):
         derphi0 += inner_prod(g_k[index],d_k[index],*args_IP,**kwargs_IP);
-    
+
     alpha, phi1 = scalar_search_armijo(phi, phi0, derphi0, c1=c1,
                                        alpha0=alpha0)
     return alpha, fc[0], phi1;
@@ -196,12 +198,12 @@ def scalar_search_armijo(phi, phi0, derphi0, c1=1e-4, alpha0=1.0, amin=1e-06):
 #------------------------------------------------------------------------------
 
 def LS_wolfe_multiple(f, myfprime, inner_prod, M_0, X_k, g_k, d_k, old_fval=None, old_old_fval=None, args_f=(), args_IP = (), kwargs_f = {}, kwargs_IP={}, c1=1e-4, c2=0.4, amax=None, extra_condition=None, maxiter=10):
-    
+
     """
     Find alpha that satisfies strong Wolfe conditions by ....
 
     Minimizing over alpha, the function ``phi(α) = f( R_xk(α_k*d_k) )``,
-    
+
     where X_k+1 = R_xk =  √M_0*(X_k + α_k*d_k)/|| X_k + α_k*d_k ||_2
 
     is the rectraction based update see:
@@ -216,7 +218,7 @@ def LS_wolfe_multiple(f, myfprime, inner_prod, M_0, X_k, g_k, d_k, old_fval=None
     inner_prod : callable IP(x,y,*args_IP,**kwargs_IP)
         Inner product
     M_0 : list of float(s)
-        Constraint radii       
+        Constraint radii
     xk : list of ndarray(s)
         Starting point.
     pk : list of ndarray(s)
@@ -284,12 +286,12 @@ def LS_wolfe_multiple(f, myfprime, inner_prod, M_0, X_k, g_k, d_k, old_fval=None
         X_new = copy.deepcopy(X_k);
         for index,c_i in enumerate(M_0):
             X_new[index]  = Update_vector(X_k[index],alpha1,d_k[index],c_i,inner_prod,args_IP,kwargs_IP);
-        
-        return f( X_new, *args_f,**kwargs_f)    
+
+        return f( X_new, *args_f,**kwargs_f)
 
 
     fprime = myfprime
-        
+
     def derphi(alpha1):
         gc[0] += 1
 
@@ -297,30 +299,30 @@ def LS_wolfe_multiple(f, myfprime, inner_prod, M_0, X_k, g_k, d_k, old_fval=None
         g_kp1 = copy.deepcopy(g_k);
         Tdkm1 = copy.deepcopy(g_k);
         derphi1=0.
-        
+
         #apply norm constraints
         for index,c_i in enumerate(M_0):
-            X_kp1[index]  = Update_vector(X_k[index],alpha1,d_k[index],c_i,inner_prod,args_IP,kwargs_IP); 
-        
+            X_kp1[index]  = Update_vector(X_k[index],alpha1,d_k[index],c_i,inner_prod,args_IP,kwargs_IP);
+
         # Calculate the Euclidean gradient
         Nab_Jkp1 = fprime(X_kp1,*args_f,**kwargs_f)
-        
-        # Compute the tangent gradient and perform vector transport of d_k 
+
+        # Compute the tangent gradient and perform vector transport of d_k
         for index,_ in enumerate(M_0):
             g_kp1[index] = tangent_vector(X_kp1[index],Nab_Jkp1[index],inner_prod,args_IP,kwargs_IP)
             Tdkm1[index] = transport_vector(X_kp1[index],d_k[index],inner_prod,args_IP,kwargs_IP)
             derphi1     += inner_prod(g_kp1[index],Tdkm1[index],*args_IP,**kwargs_IP); # Compute the derivate w.r.t alpha1
-        
+
         # Store current tangent gradient for later use
         gval[0]  = g_kp1;
         gval_alpha[0] = alpha1;
 
-        return derphi1;    
+        return derphi1;
 
-    # Compute the derivative w.r.t alpha at alpha=0    
-    derphi0=0.    
-    for index,_ in enumerate(M_0):    
-        derphi0 += inner_prod(g_k[index],d_k[index],*args_IP,**kwargs_IP);    
+    # Compute the derivative w.r.t alpha at alpha=0
+    derphi0=0.
+    for index,_ in enumerate(M_0):
+        derphi0 += inner_prod(g_k[index],d_k[index],*args_IP,**kwargs_IP);
 
 
     extra_condition2 = None
@@ -330,7 +332,7 @@ def LS_wolfe_multiple(f, myfprime, inner_prod, M_0, X_k, g_k, d_k, old_fval=None
             extra_condition2, maxiter=maxiter)
 
     if derphi_star is None:
-        
+
         warn('The line search algorithm did not converge', LineSearchWarning)
     else:
         # derphi_star is a number (derphi) -- so use the most recently
@@ -639,7 +641,7 @@ def transport_vector(X_k,dkm1,inner_prod,args_IP=(),kwargs_IP={}):
 
 	L2   = np.sqrt( inner_prod(X_k,X_k ,*args_IP,**kwargs_IP) );
 
-	return dkm1 - ( inner_prod(X_k,dkm1,*args_IP,**kwargs_IP)/(L2**2) )*X_k; #*(np.sqrt(M_0)/L2); #not needed due to the fact = 
+	return dkm1 - ( inner_prod(X_k,dkm1,*args_IP,**kwargs_IP)/(L2**2) )*X_k; #*(np.sqrt(M_0)/L2); #not needed due to the fact =
 
 def tangent_vector(X_k,Nab_Jk,inner_prod,args_IP=(),kwargs_IP={}):
 
@@ -665,7 +667,7 @@ def Update_vector(X_k,alpha_k,d_k,M_0,inner_prod,args_IP=(),kwargs_IP={}):
     Update the parameter vector in the search direction alpha_k*d_k
 
     Inputs:
-    X_k    - vector parameter 
+    X_k    - vector parameter
     alpha_k- float  step-size
     d_k    - vector search direction
     M_0    - float spherical manifold size < X_0,X_0 > = M_0
@@ -682,7 +684,7 @@ def Update_vector(X_k,alpha_k,d_k,M_0,inner_prod,args_IP=(),kwargs_IP={}):
 
     #Xn = np.sqrt( M_0 );
     #dn = np.sqrt( inner_prod(d_k,d_k,*args) );
-    #return np.cos(alpha_k*dn)*X_k + np.sin(alpha_k*dn)*d_k*(Xn/dn); 
+    #return np.cos(alpha_k*dn)*X_k + np.sin(alpha_k*dn)*d_k*(Xn/dn);
 
     f    = X_k + alpha_k*d_k;
     L2_f = inner_prod(f,f,*args_IP,**kwargs_IP);
@@ -690,10 +692,10 @@ def Update_vector(X_k,alpha_k,d_k,M_0,inner_prod,args_IP=(),kwargs_IP={}):
     return f*np.sqrt(M_0/L2_f)
 
 def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), args_IP=(), kwargs_f = {}, kwargs_IP={}, err_tol = 1e-06, max_iters = 200, alpha_k = 1., LS = 'LS_wolfe', CG = True, callback=None, verbose=True):
-	
+
     """
-    Function to perform the minimisation of J(X) via 
-    gradient based descent  Grad_f(X) on a spherical 
+    Function to perform the minimisation of J(X) via
+    gradient based descent  Grad_f(X) on a spherical
     manifold <X,X> = M_0.
 
     Inputs:
@@ -711,12 +713,12 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
 
     """
 
-    if LS == 'LS_wolfe': 
+    if LS == 'LS_wolfe':
         LS = LS_wolfe_multiple;
     elif LS == 'LS_armijo':
         LS = LS_armijo_multiple;
 
-    error = np.ones(len(M_0)); 
+    error = np.ones(len(M_0));
     func_evals=0;
     grad_evals=0;
     alpha_max = alpha_k;
@@ -744,39 +746,39 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
             g_k    = [tangent_vector(u,du,inner_prod,args_IP,kwargs_IP) for u,du in zip(X_k,Nab_Jk)];
             grad_evals +=1;
 
-        
-        # Select a search direction d_k via 
+
+        # Select a search direction d_k via
         # SD-steepest descent or CG - conjugate gradient
         if (R.Iterations > 1) and (CG==True):
-            
+
             # Conjuagte-gradient
-            beta_k_FR = 0.; 
+            beta_k_FR = 0.;
             beta_k_PR = 0.;
             Tg_km1    = copy.deepcopy(g_k);
             Td_km1    = copy.deepcopy(g_k);
 
             for ii,_ in enumerate(g_k):
-                
+
                 beta_k_FR += inner_prod(g_k[ii],g_k[ii],*args_IP,**kwargs_IP)/inner_prod(g_km1[ii],g_km1[ii],*args_IP,**kwargs_IP)
-                
+
                 Tg_km1[ii] = transport_vector(X_k[ii],g_km1[ii],inner_prod,args_IP,kwargs_IP);
                 beta_k_PR += ( inner_prod(g_k[ii],g_k[ii],*args_IP,**kwargs_IP) - inner_prod(g_k[ii],Tg_km1[ii],*args_IP,**kwargs_IP) )/inner_prod(g_km1[ii],g_km1[ii],*args_IP,**kwargs_IP);
 
                 Td_km1[ii] = transport_vector(X_k[ii],d_k[ii],inner_prod,args_IP,kwargs_IP)
 
-            # Use the Fletcher-Reeves + Polak Rib\`ere update 
+            # Use the Fletcher-Reeves + Polak Rib\`ere update
             # of H. Sato Riemannian conjugate gradient methods 2021
             # to select the parameter ß_k
             beta_k = max(0.,min(beta_k_FR,beta_k_PR));
-            
+
             d_k = [-1.*g_ki + beta_k*T_ki for g_ki,T_ki in zip(g_k,Td_km1)];
-        
-        else:   
-            # Gradient descent    
+
+        else:
+            # Gradient descent
             d_k = [-1.*g_i for g_i in g_k];
 
 
-        # Perform a line-search for the step-size α_k to ensure descent 
+        # Perform a line-search for the step-size α_k to ensure descent
         if (R.Iterations == 0) or (LS == LS_armijo_multiple):
             alpha_k, f_evals, J_k = LS_armijo_multiple(f, inner_prod, M_0, X_k, g_k, d_k,  J_k,  args_f, args_IP, kwargs_f, kwargs_IP, alpha0 = alpha_k)
             func_evals+=f_evals;
@@ -785,24 +787,24 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
             grad_evals+=g_evals;
             func_evals+=f_evals;
 
-        # Update the parameter vector - applying the norm constraints    
+        # Update the parameter vector - applying the norm constraints
         for index,c_i in enumerate(M_0):
-            
+
             if alpha_k == None:
-                print("\n Couldn't find a descent direction .... Terminating \n");      
+                Print("\n Couldn't find a descent direction .... Terminating \n");
                 return R.Residual,R.Function_Value,R.X_opt;
             else:
                 X_k[index]   = Update_vector(X_k[index],alpha_k,d_k[index],c_i,inner_prod,args_IP,kwargs_IP);
                 error[index] = inner_prod(g_k[index],g_k[index],*args_IP,**kwargs_IP)**0.5;
 
 
-        # Update the optimisation state        
+        # Update the optimisation state
         R.X_opt = X_k;
 
         R.Iterations+=1;
-        R.Function_Evals+=func_evals; 
-        R.Gradient_Evals+=grad_evals; 
-        
+        R.Function_Evals+=func_evals;
+        R.Gradient_Evals+=grad_evals;
+
         for ii,_ in enumerate(error):
             RESIDUAL[ii].append(error[ii]);
 
@@ -814,31 +816,31 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
         func_evals=0;
         grad_evals=0;
 
-        # Save the optimisation state   
+        # Save the optimisation state
         if callback != None:
             callback(R.Iterations);
-        
+
         try:
             if MPI.COMM_WORLD.rank == 0:
                 f_h5 = h5py.File('DAL_PROGRESS.h5', 'w');
                 for item in vars(R).items():
                     f_h5.create_dataset(item[0], data = item[1])
                 f_h5.close()
-            
+
         except:
-            pass; 
-              
-        # Print out the optimisation status    
-        if verbose : print(R,flush=True);                       
+            pass;
+
+        # Print out the optimisation status
+        if verbose : print(R,flush=True);
         f_txt.write(str(R))
         f_txt.write('\n')
         f_txt.flush()
 
-    f_txt.close()    
+    f_txt.close()
     return R.Residual,R.Function_Value,R.X_opt;
 
 def plot_optimisation(THETA,FUNCT):
-	
+
     import matplotlib.pyplot as plt
 
     fig, ax1 = plt.subplots(figsize=(8,6));
@@ -854,23 +856,23 @@ def plot_optimisation(THETA,FUNCT):
 
     # Unpack r_k then plot
     linestyles = ['-.','-'];
-    for i,r_k in enumerate(THETA): 
+    for i,r_k in enumerate(THETA):
         x = np.arange(0,len(r_k),1);
         ax2.semilogy(x,r_k,color='tab:blue',linewidth=3, markersize=3,label=r"c_%i"%i, linestyle=linestyles[i])
-        
+
     ax1.tick_params(axis='y', labelcolor='tab:red',labelsize=26)
     ax1.tick_params(axis='x',labelsize=26)
     ax1.set_ylabel(r'$|\hat{J}_k(\hat{X}_k)|$',color='tab:red',fontsize=26)
     ax1.set_xlabel(r'Iteration $k$',fontsize=26)
     ax1.set_xlim([0,np.max(x)])
-    #ax1.set_ylim([1e-12,1e02])  
+    #ax1.set_ylim([1e-12,1e02])
     ax1.set_xticks(ax1.get_xticks()[::2])
     ax1.set_yticks(ax1.get_yticks()[::2])
 
     ax2.tick_params(axis='y', labelcolor='tab:blue',labelsize=26)
     ax2.set_ylabel(r'$r_k$',color='tab:blue',fontsize=26)
     ax2.set_yticks(ax2.get_yticks()[::2])
-    #ax2.set_ylim([1e-06,1])  
+    #ax2.set_ylim([1e-06,1])
     ax2.legend(fontsize=18)
 
     plt.grid()
@@ -879,4 +881,3 @@ def plot_optimisation(THETA,FUNCT):
     plt.show();
 
     return None;
-

@@ -729,7 +729,8 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
 
     # Initialise the class for data handling
     R = result(len(M_0))
-    f_txt = open("optimize_result.txt", "a")
+    if(MPI.COMM_WORLD.rank==0):    
+        f_txt = open("optimize_result.txt", "a")
 
     # Normalise X_k so that <X,X> = M_0
     J_k_old = None;
@@ -832,11 +833,13 @@ def Optimise_On_Multi_Sphere(X_0, M_0, f, myfprime, inner_prod, args_f = (), arg
 
         # Print out the optimisation status
         if verbose : Print(R,flush=True);
-        f_txt.write(str(R))
-        f_txt.write('\n')
-        f_txt.flush()
+        if(MPI.COMM_WORLD.rank==0):
+            f_txt.write(str(R))
+            f_txt.write('\n')
+            f_txt.flush()
 
-    f_txt.close()
+    if(MPI.COMM_WORLD.rank==0):
+        f_txt.close()
     return R.Residual,R.Function_Value,R.X_opt;
 
 def plot_optimisation(THETA,FUNCT):

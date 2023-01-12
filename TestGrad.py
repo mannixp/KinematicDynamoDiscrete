@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import logging
+from mpi4py import MPI
 
 def Print(str,flush=False):
     if MPI.COMM_WORLD.rank == 0:
